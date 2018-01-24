@@ -49,9 +49,9 @@ int main(int argc, char *argv[]) {
 
     if (cmd == NULL) continue;
 		
-		// char background = strcmp(args[cnt-1], "&") != 0;
+		char background = strcmp(args[cnt-1], "&") != 0;
 
-    // if (background) args[cnt-1] = NULL;
+    if (background) args[cnt-1] = NULL;
     
     ++curPos;
     curPos %= STACK_SIZE;
@@ -70,18 +70,25 @@ int main(int argc, char *argv[]) {
     pid_t pid = fork();
 
     if (pid == 0) {
-			int errcode = execvp(cmd, args);
-    	// printf("Some error occured: %d\n", errcode);
-    	// printf("Errno: %d\n", errno);
-    	// if (!background)
+    	pid_t pid2 = fork();
+    	
+    	if (pid2 == 0) {
+    		printf("Starting exevp in %d, with parent %d\n", getpid(), getppid());
+				int errcode = execvp(cmd, args);
+    		printf("Ending exevp in %d, with parent %d\n", getpid(), getppid());
+    		printf("Some error occured: %d\n", errcode);
+    		printf("Errno: %d\n", errno);
 	    	exit(0);
-	    // else
-	    	// raise(0);
+	    } else {
+	    	wait(NULL);
+	    	if (background) {
+	    		raise(0);
+	    	}
+	    }
     } else if (pid > 0) {
-    	// if (!background)
+    	if (!background) {
     		wait(NULL);
-    } else {
-  
+    	}
     }
 	}
 	printf("Have a nice day. Good bye!\n");
