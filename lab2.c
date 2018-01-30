@@ -17,6 +17,8 @@
 int main(int argc, char *argv[]) {
 	pid_t pid = fork();
 	
+	printf("Root process pid = %d\n", getpid());
+	
 	// Creating orphant
 	if (pid < 0) {
 		printf("Error!");
@@ -29,32 +31,35 @@ int main(int argc, char *argv[]) {
 			double start = clock();
 			pid_t before;
 			printf("parent before is %d\n", before = getppid());
-			sleep(5);
-			/* while (true) {
-				// printf("%lf\n", (clock() - start) / CLOCKS_PER_SEC);
-				if ((clock() - start) / CLOCKS_PER_SEC > 5) {
-					break; // CLOCKS_PER_SEC is the number of ticks per second
-				}
-			} */
-			// Checking wether we are orphant
-			FILE *fout = fopen("output.txt", "w");
-			// printf("%d %d\n", getpid(), getppid());
+			sleep(10);
 			if (getppid() != before) {
 				printf("Process %d is orphan\n", getpid());
 			} else {
 				printf("Parent process is still running");
 			}
-		}
-		sleep(2);
-		raise(SIGKILL);
-		double start = clock();
-		/*while (true) {
-			// printf("%lf\n", (clock() - start) / CLOCKS_PER_SEC);
-			if ((clock() - start) / CLOCKS_PER_SEC > 5) {
-				break; // CLOCKS_PER_SEC is the number of ticks per second
+		} else {
+			printf("First child pid = %d\n", pid);
+			// We are in root process 
+			// Let's make zombie process
+			pid_t pid = fork();
+			if (pid < 0) {
+				printf("Forking error!");
+			} else {
+				if (pid == 0) {
+					// We are in zombie process
+					exit(0);
+				} else {
+					printf("Second child pid = %d\n", pid);
+					// Wait a bit to kill current process before orphan process ends and after zombie process ends
+					sleep(6);
+					char call[256];
+					sprintf(call, "ps aux | grep \"%d\"", pid);
+					// sprintf(call, "cat /proc/%d/status", pid);
+					system(call);
+					raise(SIGKILL);
+				}
 			}
-		}*/
-
+		}
 	}
 	
 	
