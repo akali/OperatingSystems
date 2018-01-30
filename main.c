@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include <assert.h>
+#include <pthread.h>
 
 #define MAXLEN 256
 #define STACK_SIZE 10
@@ -27,9 +28,27 @@ void history() {
 	}
 }
 
+void *executionThread(void* vargs) {
+	printf("Starting execvp in %d, with parent %d\n", getpid(), getppid());
+	int errcode = execvp(cmd, args);
+	printf("Ending execvp in %d, with parent %d\n", getpid(), getppid());
+	printf("Some error occured: %d\n", errcode);
+	printf("Errno: %d\n", errno);
+	return NULL;
+}
+
+void execute() {
+	pthread_t tid;
+	
+	pthread_create(&tid, NULL, executionThread, NULL);
+	pthread_join(tid, NULL);
+
+	raise(SIGUSR1);
+}
+
 int main(int argc, char *argv[]) {
   while (true) {
-    printf("myShell> ");
+    printf("Shell) ");
     fflush(stdout);
     char tmp[MAXLEN];
     fgets(tmp, MAXLEN-1, stdin);
@@ -46,10 +65,15 @@ int main(int argc, char *argv[]) {
       args[cnt++] = p;
       p = strtok(NULL, separator);
     }
+    
+		/*for (int i = 0; i < cnt; ++i) {
+			printf("!!! -> %s\n", args[i]);
+		}*/
 
     if (cmd == NULL) continue;
 		
-		char background = strcmp(args[cnt-1], "&") != 0;
+		char background = false;
+		if (cnt) background = strcmp(args[cnt-1], "&") == 0;
 
     if (background) args[cnt-1] = NULL;
     
@@ -70,21 +94,7 @@ int main(int argc, char *argv[]) {
     pid_t pid = fork();
 
     if (pid == 0) {
-    	pid_t pid2 = fork();
-    	
-    	if (pid2 == 0) {
-    		printf("Starting exevp in %d, with parent %d\n", getpid(), getppid());
-				int errcode = execvp(cmd, args);
-    		printf("Ending exevp in %d, with parent %d\n", getpid(), getppid());
-    		printf("Some error occured: %d\n", errcode);
-    		printf("Errno: %d\n", errno);
-	    	exit(0);
-	    } else {
-	    	wait(NULL);
-	    	if (background) {
-	    		raise(0);
-	    	}
-	    }
+    	execute();
     } else if (pid > 0) {
     	if (!background) {
     		wait(NULL);
